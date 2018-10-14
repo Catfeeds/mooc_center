@@ -188,59 +188,59 @@ class column extends Core
 //        $_GET['timestamp'] = time();
 //        $salt = 'o2fSA';
 //        $_GET['sign'] = encrypt_key(['v1/column/column_index', $_GET['timestamp'], $_GET['center_token'], $salt], '');
-    $type = input('param.type',1,'intval');  //1最新课程  2 经典课程
-    $page = input('param.page',1,'intval');
-    $len = input('param.len',10,'intval');
-    $center_id = input('param.center_id',0,'intval');
+        $type = input('param.type',1,'intval');  //1最新课程  2 经典课程
+        $page = input('param.page',1,'intval');
+        $len = input('param.len',10,'intval');
+        $center_id = input('param.center_id',0,'intval');
 
-    //获取首页栏目
-    $columnModel = new ColumnModel();
-    $columnList = $columnModel->where(['center_id'=>$center_id,'parent_id'=>['neq',0],'status'=>1])->field('id,title,parent_id')->order('create_time asc')->select();
+        //获取首页栏目
+        $columnModel = new ColumnModel();
+        $columnList = $columnModel->where(['center_id'=>$center_id,'parent_id'=>['neq',0],'status'=>1])->field('id,title,parent_id')->order('create_time asc')->select();
 
-    if($type == 1){
-        $column = $columnList[0];
-    }else{
-        $column = $columnList[1];
-    }
-
-
-    //获取栏目下的课程，课程浏览量及评价分数
-    $column_mk = new CourseRela();
-    $column_mkList = $column_mk->alias('cm')
-        ->join('course c', 'c.id=cm.course_id','left')
-        ->join('center_course cc','cc.course_id=c.id and cc.center_id=cm.center_id','left')
-        ->join('comment ct','ct.course_id=c.id and cm.center_id=ct.center_id','left')
-        ->where(['cm.other_id' => $column['id'], 'cm.type' => 4, 'cm.status' => 1,'cm.center_id'=>$center_id])
-        ->fieldRaw('c.id,c.course_title,c.cover_img,c.type,c.creator_id,cc.play_num,ceil(avg(ct.practical_score+ct.concise_score+ct.clear_score)/3) as score')
-        ->page($page,$len)
-        ->group('c.id')
-        ->select();
-
-    if($column_mkList){
-        $column_mkList = \collection($column_mkList);
-    }else{
-        $column_mkList = [];
-    }
-
-    foreach($column_mkList as $key=>$item){
-        //获取老师名称
-        if($item['type'] === 1){
-            $column_mkList[$key]['creator'] = (new CourseRela)->alias('cr')->join('mooc_user mu','mu.id = cr.other_id')->where(['cr.type'=>3,'cr.course_id'=>$item['id']])->field('mu.nick_name')->value('mu.nick_name');
+        if($type == 1){
+            $column = $columnList[0];
         }else{
-            $column_mkList[$key]['creator'] = (new MoocUser())->where(['id'=>$item['creator_id']])->value('nick_name');
+            $column = $columnList[1];
         }
-        //获取报名人数
-        $column_mkList[$key]['baomint_num'] = (new \app\v1\model\Baoming())->where(['course_id'=>$item['id'],'center_id'=>$center_id])->count(1);
-        if($item['score'] == null){
-            $column_mkList[$key]['score'] = 0;
+
+
+        //获取栏目下的课程，课程浏览量及评价分数
+        $column_mk = new CourseRela();
+        $column_mkList = $column_mk->alias('cm')
+            ->join('course c', 'c.id=cm.course_id','left')
+            ->join('center_course cc','cc.course_id=c.id and cc.center_id=cm.center_id','left')
+            ->join('comment ct','ct.course_id=c.id and cm.center_id=ct.center_id','left')
+            ->where(['cm.other_id' => $column['id'], 'cm.type' => 4, 'cm.status' => 1,'cm.center_id'=>$center_id,'c.delete_time'=>0])
+            ->fieldRaw('c.id,c.course_title,c.cover_img,c.type,c.creator_id,cc.play_num,ceil(avg(ct.practical_score+ct.concise_score+ct.clear_score)/3) as score')
+            ->page($page,$len)
+            ->group('c.id')
+            ->select();
+
+        if($column_mkList){
+            $column_mkList = \collection($column_mkList);
+        }else{
+            $column_mkList = [];
         }
+
+        foreach($column_mkList as $key=>$item){
+            //获取老师名称
+            if($item['type'] === 1){
+                $column_mkList[$key]['creator'] = (new CourseRela)->alias('cr')->join('mooc_user mu','mu.id = cr.other_id')->where(['cr.type'=>3,'cr.course_id'=>$item['id']])->field('mu.nick_name')->value('mu.nick_name');
+            }else{
+                $column_mkList[$key]['creator'] = (new MoocUser())->where(['id'=>$item['creator_id']])->value('nick_name');
+            }
+            //获取报名人数
+            $column_mkList[$key]['baomint_num'] = (new \app\v1\model\Baoming())->where(['course_id'=>$item['id'],'center_id'=>$center_id])->count(1);
+            if($item['score'] == null){
+                $column_mkList[$key]['score'] = 0;
+            }
 //            unset($item['type']);
+        }
+
+        return $this->ok(['column'=>$column,'mooc'=>$column_mkList],12111,'获取栏目成功');
+
+
     }
-
-    return $this->ok(['column'=>$column,'mooc'=>$column_mkList],12111,'获取栏目成功');
-
-
-}
 
 
     /**
