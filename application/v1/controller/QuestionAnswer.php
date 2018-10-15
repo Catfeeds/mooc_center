@@ -138,7 +138,8 @@ class QuestionAnswer extends Base
         }
 
         $userModel = new MoocUser();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo();
+        //$user = $userModel->where(['user_token' => $user_token])->find();
 
         if(input('param.scrollHeight', 0, 'intval') < 220)
         {

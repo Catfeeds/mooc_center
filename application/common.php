@@ -343,7 +343,8 @@ function verify()
     }
 }
 
-function getUserInfo($user_token){
+function getUserInfo(){
+    $user_token = input('user_token','','trim');
     $user_info = (new \app\v1\model\MoocUser())
         ->alias('mu')
         ->join('token t','t.user_id=mu.id')

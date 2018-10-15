@@ -2257,17 +2257,16 @@ class Course extends Core {
 				->field('u.id,u.nick_name,u.company,u.department,u.avatar,u.profile')
 				->where(['cr.course_id' => $data['course_id'], 'cr.center_id' => $data['center_id'], 'cr.type' => 3])
 				->select();
-//
-//
+
 //            //获取所有教师团队服务
 //            $userModel = new MoocUser();
 //            $join[]    = ['mooc_center mc', 'mc.id=u.center_id'];
 //            $field     = 'u.id,u.nick_name,u.profile,u.avatar,u.company,u.department';
 //            $where_all['u.center_id'] = $center_id;
-//            $where_all['u.type'] = 2;
+//            $whe  re_all['u.type'] = 2;
 			//$userList = $userModel->alias('u')->join($join)->where($where_all)->field($field)->order(['u.center_id asc'])->select();
 
-			$userList = $Db::query("SELECT u.id,u.nick_name,u.company,u.department,u.avatar,u.profile FROM `mooc_user` `u` INNER JOIN `mooc_center` `mc` ON `mc`.`id`=`u`.`center_id` WHERE  `u`.`center_id` = {$center_id} ORDER BY `u`.`center_id` ASC");
+			$userList = $Db::query("SELECT u.id,u.nick_name,u.company,u.department,u.avatar,u.profile FROM `mooc_user` `u` INNER JOIN `mooc_center` `mc` ON `mc`.`id`=`u`.`center_id` WHERE  `u`.`center_id` = {$center_id} AND `u`.`type`= 2 ORDER BY `u`.`center_id` ASC");
 
 			if ($userList)
 			{
