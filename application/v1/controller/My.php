@@ -42,13 +42,13 @@ class My extends Base {
 		//获取个人信息
 		$user               = (new MoocUser())
 			->alias('u')
-			->join('__FOLLOW__ f', 'f.user_id = u.id', 'left')
+			->join('__FOLLOW__ f', 'f.follow_id = u.id', 'left')
 			->where('user_token', $user_token)
 			->where('center_id', $center_id)
 			->field('u.id,u.nick_name,u.sex,u.avatar,u.teacher_title,u.area,u.email,u.mobile,u.profile,u.type,count(f.follow_id) as fans_num')
 			->group('f.user_id')
 			->find();
-		$user['follow_num'] = (new \app\v1\model\Follow())->where(['follow_id' => $user['id']])->count(1);
+		$user['follow_num'] = (new \app\v1\model\Follow())->where(['user_id' => $user['id']])->count(1);
 		$user['profile']    = htmlspecialchars_decode($user['profile']);
 		//获取学习时长服务
 		$Db            = new \think\Db;
@@ -58,8 +58,18 @@ class My extends Base {
 			$sum = 0;
 			foreach ($user_schedule as $k => $v)
 			{
-				if(!empty($v['more'])){
-					$sum = $sum + array_sum(json_decode($v['more'], TRUE));
+				if ( ! empty($v['more']))
+				{
+
+
+					foreach (json_decode($v['more'], TRUE) as $kk => $vv)
+					{
+						foreach ($vv as $kkk => $vvv)
+						{
+							$sum = $sum + $vvv;
+						}
+
+					}
 				}
 
 			}
@@ -79,8 +89,7 @@ class My extends Base {
 	 */
 	public function edit()
 	{
-		$user_token = $this->request->param('user_token', '');
-		$param      = $this->request->param();
+		$param = $this->request->param();
 
 		$userRes = verify();
 		if ($userRes['status'] == 0)
@@ -133,6 +142,9 @@ class My extends Base {
 						case "s":
 							$sex = 0;
 							break;
+						default:
+							$sex = 0;
+							break;
 					}
 					$sql_update .= " ,sex=" . $sex . "";
 				}
@@ -152,6 +164,7 @@ class My extends Base {
 					}
 					$sql_update .= " SET sex=" . $sex . "";
 				}
+
 
 				if ( ! empty($this->request->param('avatar')) && ! empty($sql_update))
 				{
@@ -190,7 +203,6 @@ class My extends Base {
 				}
 
 				$Db = new \think\Db;
-				//exit("update mooc_user {$sql_update} where user_token='".$user_token."'");
 				$Db::query("update mooc_user {$sql_update} where user_token='" . $user_token . "'");
 				return ok('', 26105, '编辑个人信息成功', 1);
 				die;
@@ -300,6 +312,8 @@ class My extends Base {
 
 				$Db = new \think\Db;
 				//exit("update mooc_user {$sql_update} where user_token='".$user_token."'");
+
+
 				$Db::query("update mooc_user {$sql_update} where user_token='" . $user_token . "'");
 				return ok('', 26105, '编辑个人信息成功', 1);
 				die;
@@ -409,7 +423,7 @@ class My extends Base {
 	 */
 	public function myCourse()
 	{
-		$Db            = new \think\Db;
+		$Db      = new \think\Db;
 		$userRes = verify();
 		if ($userRes['status'] == 0)
 		{
@@ -459,8 +473,9 @@ class My extends Base {
 			->join('__CHAPTER__ ct', 'ct.id=s.chapter_id', 'left')
 			->where(['b.user_id' => $user['id']])
 			->order($order)
-			->field('c.*,b.user_id,sd.section_id,sd.current_time,ct.id as chapter_id')
+			->field('c.*,b.user_id,sd.last_stu_time,sd.section_id,sd.current_time,ct.id as chapter_id')
 			->limit(($page - 1) * $len . ',' . $len)
+            ->group('c.id')
 			->select();
 
 		if ($user_course != NULL)
@@ -478,20 +493,47 @@ class My extends Base {
 					$item['schedule'] = ceil(($item['current_time'] / $item['total_time']) * 100) . '%';
 				}
 
-				$isBaomings=$Db::query("select * from baoming where center_id=".$userRes['data']['center_id']." and course_id=".$item['id']." and user_id=".$user_id);
+				$isBaomings = $Db::query("select * from baoming where center_id=" . $userRes['data']['center_id'] . " and course_id=" . $item['id'] . " and user_id=" . $user_id);
 
-				if(empty($isBaomings)){
+				if (empty($isBaomings))
+				{
 					$item['isBaoming'] = 'no';
-				}else{
+				}
+				else
+				{
 					$item['isBaoming'] = 'yes';
 				}
+
+								//获取笔记总数服务
+				$noteNum=$Db::query("select count(*) as cnt from section_note where center_id=" . $userRes['data']['center_id'] . " and course_id=" . $item['id'])[0]['cnt'];
+
+				//获取问题服务总数服务
+				$answerNum=0;
+				$questions=$Db::query("select * from `question` where `center_id`=" . $userRes['data']['center_id'] . " and `course_id`=" . $item['id']);
+				if(!empty($questions)){
+					foreach ($questions as $question_k=>$question_v)
+					{
+						$answerNum=$answerNum+$Db::query("select count(*) as cnt from `answer` where `question_id`=" . $question_v['id'] )[0]['cnt'];
+					}
+				}
+				$item['noteNum'] = $noteNum;
+				$item['answerNum'] = $answerNum;
+				//获取建科老师服务
+				$teacher_ras=$Db::query("select * from course_rela where center_id=" . $userRes['data']['center_id'] . " and course_id=" . $item['id']." and `type`=3");
+				if(!empty($teacher_ras)){
+					$teachers_temp=[];
+					foreach ($teacher_ras as $teacher_k=>$teacher_v){
+
+						$teachers_temp=$Db::query("select * from mooc_user where center_id=" . $userRes['data']['center_id'] . " and id=" . $teacher_v['other_id']);
+					}
+				}
+				$item['teacherNickName'] = current($teachers_temp)['nick_name'];
 
 				$user_course[$k] = $this->_handleData($item);
 			}
 
 		}
 
-		file_put_contents("/root/test.log", json_encode($user_course) . "\r\n", FILE_APPEND);
 
 		return $this->ok($user_course, 123456, '获取我的课程成功');
 
@@ -851,7 +893,7 @@ WHERE
 		$where  = [];
 		if ( ! empty($search))
 		{
-			$noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`content` like '%{$search}%' and `n`.`user_id` = " . $user['id'] . " LIMIT " . (($page - 1) * $len) . ",{$len}");
+			$noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`delete_time` = 0 AND `n`.`content` like '%{$search}%' and `n`.`user_id` = " . $user['id'] . " LIMIT " . (($page - 1) * $len) . ",{$len}");
 			$noteList_new = array();
 			foreach ($noteList as $key => $value)
 			{
@@ -872,7 +914,7 @@ WHERE
 				{
 					$value['is_like'] = 1;
 				}
-				$noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`user_id` = " . $user['id']));
+				$noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`delete_time` = 0 and `n`.`user_id` = " . $user['id']));
 				$value['totalNum'] = $noteTotal;
 				array_push($noteList_new, $value);
 			}
@@ -880,7 +922,7 @@ WHERE
 		}
 		else
 		{
-			$noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`user_id` = " . $user['id'] . " LIMIT " . (($page - 1) * $len) . ",{$len}");
+			$noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`delete_time` = 0 and `n`.`user_id` = " . $user['id'] . " LIMIT " . (($page - 1) * $len) . ",{$len}");
 			$noteList_new = array();
 			foreach ($noteList as $key => $value)
 			{
@@ -901,7 +943,7 @@ WHERE
 				{
 					$value['is_like'] = 1;
 				}
-				$noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`user_id` = " . $user['id']));
+				$noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`delete_time` = 0 and `n`.`center_id` = " . $user['center_id'] . " AND `n`.`user_id` = " . $user['id']));
 				$value['totalNum'] = $noteTotal;
 				array_push($noteList_new, $value);
 			}
@@ -948,6 +990,7 @@ WHERE
 		$user                 = $userModel->where(['user_token' => $user_token])->find();
 		$where['q.center_id'] = $user['center_id'];
 		$where['q.user_id']   = $user['id'];
+		$where['q.delete_time']   = 0;
 		$questionList         = $questionModel->alias('q')
 			->join('__SECTION__ s', 's.id=q.section_id')
 			->join('__CHAPTER__ c', 'c.id=s.chapter_id')
@@ -985,6 +1028,7 @@ WHERE
 		$userModel          = new MoocUser();
 		$answerModel        = new Answer();
 		$user               = $userModel->where(['user_token' => $user_token])->find();
+		$where['a.delete_time'] = 0;
 		$where['a.user_id'] = $user['id'];
 		$answerList         = $answerModel->alias('a')
 			->join('__QUESTION__ q', 'q.id=a.question_id')
@@ -1046,10 +1090,17 @@ WHERE
 			//数据整理
 			foreach ($collectList as $k => $item)
 			{
+				if ($item['total_time'] == 0)
+				{
+					$item['schedule'] = '0%';
+				}
+				else
+				{
+					$item['schedule'] = ceil(($item['current_time'] / $item['total_time']) * 100) . '%';
+				}
 
-				$item['schedule'] = ceil(($item['current_time'] / $item['total_time']) * 100) . '%';
-				$collectList[$k]  = $this->_handleData($item);
-				                $collectList[$k]['is_baoming'] = (new Baoming)->where(['user_id'=>$user['id'],'course_id'=>$item['id']])->count(1);
+				$collectList[$k]               = $this->_handleData($item);
+				$collectList[$k]['is_baoming'] = (new Baoming)->where(['user_id' => $user['id'], 'course_id' => $item['id']])->count(1);
 			}
 
 		}

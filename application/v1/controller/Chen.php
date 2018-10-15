@@ -714,6 +714,9 @@ class Chen extends Base {
 		//获取课程下学生分布服务
 		//遍历所有课程服务
 		$pie_student_course = array();
+
+		//课程讨论数
+		$comment_count_total=0;
 		if ( ! empty($Db::query("select * from course_rela where type=3 and other_id=" . $user['id']." and center_id={$center_id}")))
 		{
 			foreach ($Db::query("select * from course_rela where type=3 and other_id=" . $user['id']." and center_id={$center_id}") as $k_course => $v_course)
@@ -721,6 +724,12 @@ class Chen extends Base {
 				if(!empty($Db::query("select * from course where id=" . $v_course['course_id'])))
 				{
 					$course_title = $Db::query("select * from course where id=" . $v_course['course_id'])[0]['course_title'];
+
+					//获取参与讨论的学生总数
+					$comment_count=$Db::query("select count(*) as cnt from `comment` where center_id={$center_id} and course_id=" . $v_course['course_id'])[0]['cnt'];
+					$comment_count_total=$comment_count+$comment_count_total;
+
+
 				}
 
 				$baoming_num  = $Db::query("select count(*) as cnt from baoming where course_id=" . $v_course['course_id']." and center_id={$center_id}")[0]['cnt'];
@@ -760,18 +769,22 @@ class Chen extends Base {
 		$pie_student_area = array();
 		$new_arr          = array();
 
-		foreach ($students_temp[0] as $k => $v)
+		foreach ($students_temp as $k => $v)
 		{
-			//exit("select * from city_info where city_id =".$v['area']);
-			$city_info_tmp=$Db::query("select * from city_info where city_id ='".$v['area']."'");
-
-			if(!empty($city_info_tmp))
+			if(!empty($v))
 			{
-				$new_arr[$city_info_tmp[0]['province']][] = $v;
+				foreach ($v as $kk=>$vv)
+				{
+					//exit("select * from city_info where city_id =".$v['area']);
+					$city_info_tmp=$Db::query("select * from city_info where city_id ='".$vv['area']."'");
+					if(!empty($city_info_tmp))
+					{
+						$new_arr[$city_info_tmp[0]['province']][] = $vv;
+					}
+				}
 			}
-		}
 
-		//print_r($new_arr);
+		}
 		//查询数据库将城市编码变成省市服务
 
 		foreach ($new_arr as $index => $item)
@@ -795,7 +808,9 @@ class Chen extends Base {
 			}
 		}
 
-		$result = array("xaxis" => $xaxis, "course_num" => $course_num, "student_num" => $student_num, "qa_num" => $qa_num, "note_num" => $note_num, "collect_num" => $collect_num, "course_visit_num" => $fangwenliang, "student_course_pie" => $pie_student_course, "student_sex_none" => $sex_0_num, "student_sex_boy" => $sex_1_num, "student_sex_girl" => $sex_2_num, "pie_student_area" => $pie_student_area, "good_rate" => (($good_courses / $course_num) * 100) . '%', "discuzz_rate" => "27%");
+
+
+		$result = array("xaxis" => $xaxis, "course_num" => $course_num, "student_num" => $student_num, "qa_num" => $qa_num, "note_num" => $note_num, "collect_num" => $collect_num, "course_visit_num" => $fangwenliang, "student_course_pie" => $pie_student_course, "student_sex_none" => $sex_0_num, "student_sex_boy" => $sex_1_num, "student_sex_girl" => $sex_2_num, "pie_student_area" => $pie_student_area, "good_rate" => (($good_courses / $course_num) * 100) . '%', "discuzz_rate" =>(($comment_count_total / $student_num) * 100) . '%' );
 		return $this->ok($result, 200, "获取信息成功");
 	}
 
