@@ -35,15 +35,14 @@ class My extends Base {
         {
             $user_id   = $userRes['data']['user_id'];
             $center_id = $userRes['data']['center_id'];
-
+			$user_type = $userRes['data']['type'];
         }
-        $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
+        //$user_token = $userModel->where(['id' => $user_id])->value('user_token');
         //获取个人信息
         $user               = (new MoocUser())
             ->alias('u')
             ->join('__FOLLOW__ f', 'f.follow_id = u.id', 'left')
-            ->where('user_token', $user_token)
+            ->where('u.id', $user_id)
             ->where('center_id', $center_id)
             ->field('u.id,u.nick_name,u.sex,u.avatar,u.teacher_title,u.area,u.email,u.mobile,u.profile,u.type,count(f.follow_id) as fans_num')
             ->group('f.user_id')
@@ -81,7 +80,7 @@ class My extends Base {
         }
 
 
-        return $this->ok($user, 12222, '获取用户个人信息成功');
+        return $this->ok($user, 200, '获取用户个人信息成功');
     }
 
     /**
@@ -90,30 +89,29 @@ class My extends Base {
     public function edit()
     {
         $param = $this->request->param();
-
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-
-        }
-//        return $param;
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $centerModel = new MoocCenter();
         $userModel   = new MoocUser();
-        $user_token  = $userModel->where(['id' => $user_id])->value('user_token');
-        if ($user_token)
+        //$user_token  = $userModel->where(['id' => $user_id])->value('user_token');
+        if ($user_id)
         {
             //前台修改用户信息  仅允许修改昵称，职称，头像，单位
-            $res = checkUserToken($user_token);
-            if (TRUE !== $res)
-            {
-                return $res;
-            }
-            $user_type = $userModel->where(['user_token' => $user_token])->value('type');
+            //$res = checkUserToken($user_token);
+            //if (TRUE !== $res)
+            //{
+            //    return $res;
+            //}
+            //$user_type = $userModel->where(['user_token' => $user_token])->value('type');
             if ($user_type == 1)
             {
                 //学生
@@ -203,7 +201,7 @@ class My extends Base {
                 }
 
                 $Db = new \think\Db;
-                $Db::query("update mooc_user {$sql_update} where user_token='" . $user_token . "'");
+                $Db::query("update mooc_user {$sql_update} where `id`='" . $user_id . "'");
                 return ok('', 26105, '编辑个人信息成功', 1);
                 die;
             }
@@ -314,11 +312,11 @@ class My extends Base {
                 //exit("update mooc_user {$sql_update} where user_token='".$user_token."'");
 
 
-                $Db::query("update mooc_user {$sql_update} where user_token='" . $user_token . "'");
+                $Db::query("update mooc_user {$sql_update} where `id`='" . $user_id . "'");
                 return ok('', 26105, '编辑个人信息成功', 1);
                 die;
             }
-            $where['user_token'] = $user_token;
+            $where['id'] = $user_id;
         }
         else
         {
@@ -424,19 +422,19 @@ class My extends Base {
     public function myCourse()
     {
         $Db      = new \think\Db;
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
-        $user_type  = $userModel->where(['id' => $user_id])->value('type');
-        //$user_token="e6cf3a09c5d51b785056f591c6c3008680c0b97b";
+
         $page = input('param.page', 0, 'intval');
         $len  = input('param.len', 0, 'intval');
 
@@ -464,7 +462,7 @@ class My extends Base {
         }
 
         //获取学生的课程和进度数据
-        $user        = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user        = (new MoocUser())->where(['id' => $user_id])->find();
         $user_course = (new Baoming())
             ->alias('b')
             ->join('__COURSE__ c', 'c.id=b.course_id')
@@ -548,15 +546,17 @@ class My extends Base {
     {
         $Db = new \think\Db;
 
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $userModel = new MoocUser();
 //		$user_token = $userModel->where(['id' => $user_id])->value('user_token');----------------
 //		$user_type  = $userModel->where(['id' => $user_id])->value('type');--------------------
@@ -705,20 +705,19 @@ WHERE
      */
     public function myLatestCourse()
     {
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
         $Db         = new \think\Db;
-        //$user_token = "e6cf3a09c5d51b785056f591c6c3008680c0b97b";
-        $user_id = $userModel->where(['user_token' => $user_token])->value('id');
         $page    = input('param.page', 0, 'intval');
         $len     = input('param.len', 0, 'intval');
         $range   = input('param.range', 0, 'intval');
@@ -870,21 +869,21 @@ WHERE
      */
     public function myNote()
     {
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $Db         = new \think\Db;
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
         //获取个人笔记数据
         $noteModel = new SectionNote();
-        $user      = $userModel->where(['user_token' => $user_token])->find();
         //$user_token = 'ca2400401651e283eea2c6bf0b2974a979a781b0';
         $page = input('param.page', 0, 'intval');
         $len  = input('param.len', 0, 'intval');
@@ -893,7 +892,7 @@ WHERE
         $where  = [];
         if ( ! empty($search))
         {
-            $noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`delete_time` = 0 AND `n`.`content` like '%{$search}%' and `n`.`user_id` = " . $user['id'] . " LIMIT " . (($page - 1) * $len) . ",{$len}");
+            $noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $center_id . " AND `n`.`delete_time` = 0 AND `n`.`content` like '%{$search}%' and `n`.`user_id` = " . $user_id . " LIMIT " . (($page - 1) * $len) . ",{$len}");
             $noteList_new = array();
             foreach ($noteList as $key => $value)
             {
@@ -906,7 +905,7 @@ WHERE
                 $value['comment_num'] = $Db::query("select count(*) as cnt from section_note_reply where note_id=" . $value['id'])[0]['cnt'];
 
                 //判断是否点赞服务
-                if (empty($Db::query("select * from `like` where user_id=" . $user['id'] . " and type=2 and resource_id=" . $value['id'])))
+                if (empty($Db::query("select * from `like` where user_id=" . $user_id . " and type=2 and resource_id=" . $value['id'])))
                 {
                     $value['is_like'] = 0;
                 }
@@ -914,7 +913,7 @@ WHERE
                 {
                     $value['is_like'] = 1;
                 }
-                $noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`delete_time` = 0 and `n`.`user_id` = " . $user['id']));
+                $noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $center_id . " AND `n`.`delete_time` = 0 and `n`.`user_id` = " . $user_id));
                 $value['totalNum'] = $noteTotal;
                 array_push($noteList_new, $value);
             }
@@ -922,7 +921,7 @@ WHERE
         }
         else
         {
-            $noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $user['center_id'] . " AND `n`.`delete_time` = 0 and `n`.`user_id` = " . $user['id'] . " LIMIT " . (($page - 1) * $len) . ",{$len}");
+            $noteList     = $Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`center_id` = " . $center_id . " AND `n`.`delete_time` = 0 and `n`.`user_id` = " . $user_id . " LIMIT " . (($page - 1) * $len) . ",{$len}");
             $noteList_new = array();
             foreach ($noteList as $key => $value)
             {
@@ -935,7 +934,7 @@ WHERE
                 $value['comment_num'] = $Db::query("select count(*) as cnt from section_note_reply where note_id=" . $value['id'])[0]['cnt'];
 
                 //判断是否点赞服务
-                if (empty($Db::query("select * from `like` where user_id=" . $user['id'] . " and type=2 and resource_id=" . $value['id'])))
+                if (empty($Db::query("select * from `like` where user_id=" . $user_id . " and type=2 and resource_id=" . $value['id'])))
                 {
                     $value['is_like'] = 0;
                 }
@@ -943,14 +942,14 @@ WHERE
                 {
                     $value['is_like'] = 1;
                 }
-                $noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`delete_time` = 0 and `n`.`center_id` = " . $user['center_id'] . " AND `n`.`user_id` = " . $user['id']));
+                $noteTotal         = count($Db::query("SELECT `n`.*,`mu`.`nick_name`,`mu`.`avatar` FROM `section_note` `n` INNER JOIN `mooc_user` `mu` ON `mu`.`id`=`n`.`user_id` WHERE `n`.`delete_time` = 0 and `n`.`center_id` = " . $center_id . " AND `n`.`user_id` = " . $user_id));
                 $value['totalNum'] = $noteTotal;
                 array_push($noteList_new, $value);
             }
         }
 
-        $where['n.center_id'] = $user['center_id'];
-        $where['n.user_id']   = $user['id'];
+        $where['n.center_id'] = $center_id;
+        $where['n.user_id']   = $user_id;
         foreach ($noteList_new as $key => $item)
         {
             if ($item['type'] == 2)
@@ -968,18 +967,18 @@ WHERE
      */
     public function myQuestion()
     {
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
-
         $page = input('param.page', 0, 'intval');
         $len  = input('param.len', 0, 'intval');
 
@@ -987,7 +986,7 @@ WHERE
         //$user_token="fd83ca5379ca29332d1c26f69737d080843b4f7a";
         $userModel            = new MoocUser();
         $questionModel        = new Question();
-        $user                 = $userModel->where(['user_token' => $user_token])->find();
+        $user                 = $userModel->where(['id' => $user_id])->find();
         $where['q.center_id'] = $user['center_id'];
         $where['q.user_id']   = $user['id'];
         $where['q.delete_time']   = 0;
@@ -1010,24 +1009,25 @@ WHERE
      */
     public function myAnswer()
     {
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
         $page       = input('param.page', 0, 'intval');
         $len        = input('param.len', 0, 'intval');
         //$user_token="4800970a86649ca1ce6215864cc3df8cec0319a9";
         //获取个人提问数据
         $userModel          = new MoocUser();
         $answerModel        = new Answer();
-        $user               = $userModel->where(['user_token' => $user_token])->find();
+        $user               = $userModel->where(['id' => $user_id])->find();
         $where['a.delete_time'] = 0;
         $where['a.user_id'] = $user['id'];
         $answerList         = $answerModel->alias('a')
@@ -1051,25 +1051,26 @@ WHERE
     public function myCollect()
     {
 
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         //$user_token = "e6cf3a09c5d51b785056f591c6c3008680c0b97b";
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
         $page       = input('param.page', 0, 'intval');
         $len        = input('param.len', 0, 'intval');
         //$user_token="dbd6ae54749a4ae66160879bbd22ffb85a7e1013";
         //获取个人提问数据
         $userModel             = new MoocUser();
         $collectModel          = new Collect();
-        $user                  = $userModel->where(['user_token' => $user_token])->find();
+        $user                  = $userModel->where(['id' => $user_id])->find();
         $where['cl.user_id']   = $user['id'];
         $where['cl.center_id'] = $user['center_id'];
         $collectList           = $collectModel->alias('cl')
@@ -1116,17 +1117,18 @@ WHERE
      */
     public function myClass()
     {
-        $userRes = verify();
-        if ($userRes['status'] == 0)
-        {
-            return $userRes;
-        }
-        else
-        {
-            $user_id = $userRes['data']['user_id'];
-        }
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $userModel  = new MoocUser();
-        $user_token = $userModel->where(['id' => $user_id])->value('user_token');
         $filter     = input('param.filter', 0, 'intval');  //1 最近三天    2最近一周   3最近一个月
         $order      = input('param.order', 0, 'intval');
 
@@ -1161,7 +1163,7 @@ WHERE
         }
 
         $courseModel          = new Course();
-        $user                 = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user                 = (new MoocUser())->where(['id' => $user_id])->find();
         $where['cr.other_id'] = $user['id'];
         $where['cr.type']     = 3;
         $classes              = $courseModel
@@ -1180,20 +1182,21 @@ WHERE
     //微信端获取老师学生评论服务
     public function getCommentsForTeacher()
     {
+		$userRes = verify();
+		if ($userRes['status'] == 0)
+		{
+			return $userRes;
+		}
+		else
+		{
+			$user_id   = $userRes['data']['user_id'];
+			$center_id = $userRes['data']['center_id'];
+			$user_type = $userRes['data']['type'];
+		}
         $Db        = new \think\Db;
         $teacherID = 47;
         $page      = input('param.page', 0, 'intval');
         $len       = input('param.len', 10, 'intval');
-//		$userRes = verify();
-//		if ($userRes['status'] == 0)
-//		{
-//			return $userRes;
-//		}
-//		else
-//		{
-//			$user_id = $userRes['data']['user_id'];
-//			$center_id=$userRes['data']['center_id'];
-//		}
         $center_id       = 1;
         $comments_result = [];
         //根据老师ID遍历旗下所有课程服务
