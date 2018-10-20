@@ -275,7 +275,6 @@ class Course extends Core {
 //        } else {
 //            $user_id = $msg['data']['user_id'];
 //        }
-
 		$user_token  = input('param.user_token', '', 'trim');
 		$section_ids = [];
 		if ($user_token)
@@ -309,12 +308,12 @@ class Course extends Core {
 		{
 			$chapter_section = [];
 		}
-
 		$result = [];
 		foreach ($chapter_section as $k => $v)
 		{
 			$result[$v['id']]['unit'] = $v['chapter_title'];
 			$result[$v['id']]['id']   = $v['id'];
+			$result[$v['id']]['list_order']   = $v['list_order'];
 			if ($v['section_id'] !== NULL)
 			{
 				if (in_array($v['section_id'], $section_ids))
@@ -323,6 +322,7 @@ class Course extends Core {
 						'id' => $v['section_id'],
 						'title' => $v['section_title'],
 						'url' => $v['video_main'],
+						'list_order' => $v['list_order'],
 					];
 				}
 				else
@@ -331,12 +331,12 @@ class Course extends Core {
 						'id' => $v['section_id'],
 						'title' => $v['section_title'],
 						'url' => $v['video_main'],
+						'list_order' => $v['list_order'],
 					];
 				}
 
 			}
 		}
-
 
 		$res = array();
 		foreach ($result as $key_chapter => $v_chapter)
@@ -356,6 +356,7 @@ class Course extends Core {
 			$res[$key_chapter]['id']       = $v_chapter['id'];
 			$res[$key_chapter]['pid']      = 0;
 			$res[$key_chapter]['isParent'] = 'true';
+			$res[$key_chapter]['list_order']     = $v_chapter['list_order'];
 
 		}
 
@@ -370,6 +371,7 @@ class Course extends Core {
 					$res_section[$i]['name'] = $value_section['title'];
 					$res_section[$i]['id']   = $value_section['id'];
 					$res_section[$i]['pid']  = $v_chapter['id'];
+					$res_section[$i]['list_order']  = $value_section['list_order'];
 					$i++;
 				}
 			}
@@ -550,8 +552,11 @@ class Course extends Core {
 				}
 
 				//添加课程章节
+				if (isset($param['category']))
+				{
+					$category = $param['category'];
+				}
 
-				$category = $param['category'];
 				if ( ! empty($category))//判断是否从后台新加目录服务
 				{
 					foreach ($category as $k_chapter => $v_chapter)
@@ -737,7 +742,10 @@ class Course extends Core {
 			}
 
 			$Db       = new \think\Db;
-			$category = $param['category'];
+			if (isset($param['category']))
+			{
+				$category = $param['category'];
+			}
 			if ( ! empty($category))//判断是否从后台新加目录服务
 			{
 				foreach ($category as $k_chapter => $v_chapter)
@@ -1552,7 +1560,7 @@ class Course extends Core {
 		$identity = $identity['data'];
 
 		//章节校验
-		$chapter   = $this->request->param('chapter_id', 0, 'intval');
+		$chapter = $this->request->param('chapter_id', 0, 'intval');
 
 		$course_id = (new Chapter())->where(['id' => $chapter])->value('course_id');
 //		$secRes    = $this->_verifySectionChapter($chapter, $identity['center_id']);
@@ -1606,8 +1614,10 @@ class Course extends Core {
 			else
 			{
 				$courseModel = new \app\v1\model\Course();
-				$range_time  = $param['video_time'] - $video_time;
-				$courseModel->where('id', $course_id)->setInc('total_time', $range_time);
+				if(!empty($param['video_time'])){
+                    $range_time  = $param['video_time'] - $video_time;
+                    $courseModel->where('id', $course_id)->setInc('total_time', $range_time);
+                }
 				return ok('', 21101, '成功', 1);
 			}
 		}
@@ -2222,9 +2232,7 @@ class Course extends Core {
 		$id        = input('param.id', 0, 'intval');
 		$center_id = input('param.center_id', 0, 'intval');
 		$course_id = input('param.course_id', 0, 'intval');
-		$center_id = 1;
-		$course_id = 67;
-		$id        = 93;
+
 		if ($id == 0)
 		{
 			$where['c.id']         = $course_id;
@@ -2257,13 +2265,14 @@ class Course extends Core {
 				->field('u.id,u.nick_name,u.company,u.department,u.avatar,u.profile')
 				->where(['cr.course_id' => $data['course_id'], 'cr.center_id' => $data['center_id'], 'cr.type' => 3])
 				->select();
-
+//
+//
 //            //获取所有教师团队服务
 //            $userModel = new MoocUser();
 //            $join[]    = ['mooc_center mc', 'mc.id=u.center_id'];
 //            $field     = 'u.id,u.nick_name,u.profile,u.avatar,u.company,u.department';
 //            $where_all['u.center_id'] = $center_id;
-//            $whe  re_all['u.type'] = 2;
+//            $where_all['u.type'] = 2;
 			//$userList = $userModel->alias('u')->join($join)->where($where_all)->field($field)->order(['u.center_id asc'])->select();
 
 			$userList = $Db::query("SELECT u.id,u.nick_name,u.company,u.department,u.avatar,u.profile FROM `mooc_user` `u` INNER JOIN `mooc_center` `mc` ON `mc`.`id`=`u`.`center_id` WHERE  `u`.`center_id` = {$center_id} AND `u`.`type`= 2 ORDER BY `u`.`center_id` ASC");
