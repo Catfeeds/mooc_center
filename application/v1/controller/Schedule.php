@@ -45,7 +45,7 @@ class Schedule extends Base
         }
 
         $scheModel = new Schedules();
-        $user = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $speed = $scheModel->where(['user_id' => $user['id'], 'course_id' => $course_id])->field('section_id,current_time,more')->find();
         if($speed['section_id'] == $section_id){
             $speed['play_time'] = $speed['current_time'];
@@ -112,7 +112,7 @@ class Schedule extends Base
         }
 
         $scheModel = new Schedules();
-        $user = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $speed = $scheModel->where(['user_id' => $user['id'], 'course_id' => $course_id])->find();
 
         $data = [
@@ -177,7 +177,7 @@ class Schedule extends Base
 
         //数据校验
         $cenCourModel = new CenterCourse();
-        $user         = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
 
         if ( ! empty($course_id))
         {
@@ -216,7 +216,10 @@ class Schedule extends Base
                 }
             }
             $speed['total_time'] = $total_time;
+            $all_section = (new \app\v1\model\Chapter())->alias('c')->join('section s','s.chapter_id=c.id')->where(['c.course_id'=>$course_id])->field('s.*')->select();
+            $speed['all_section'] = $all_section;
             unset($speed['more']);
+
             return $this->ok($speed, 10006, '获取进度成功');
         }else{
             return $this->fail(10011,'未报名');

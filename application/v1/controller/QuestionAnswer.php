@@ -54,16 +54,16 @@ class QuestionAnswer extends Base
         $questionModel = new Question();
         $answerModel = new Answer();
         $question = $questionModel
-                    ->alias('q')
-                    ->join('mooc_user mu','mu.id=q.user_id')
-                    ->join('section s','s.id=q.section_id','left')
-                    ->join('chapter c','s.chapter_id=c.id','left')
+            ->alias('q')
+            ->join('mooc_user mu','mu.id=q.user_id')
+            ->join('section s','s.id=q.section_id','left')
+            ->join('chapter c','s.chapter_id=c.id','left')
 //                    ->where(['q.course_id'=>$course_id,'q.section_id'=>$section_id,'q.center_id'=>$center_id])
-                    ->where($where)
-                    ->field('q.*,mu.avatar,mu.nick_name,mu.type as user_type,c.chapter_title,s.section_title,1 as show_num')
-                    ->order('create_time','desc')
-                    ->page($page,$len)
-                    ->select();
+            ->where($where)
+            ->field('q.*,mu.avatar,mu.nick_name,mu.type as user_type,c.chapter_title,s.section_title,1 as show_num')
+            ->order('create_time','desc')
+            ->page($page,$len)
+            ->select();
 
         if($question){
             $question = \collection($question);
@@ -100,15 +100,6 @@ class QuestionAnswer extends Base
      */
     public function create_question()
     {
-
-        $_GET['user_token'] = 'cd69089bea5af15192e10ce17be7d4939eb02bb7';
-        $_GET['timestamp'] = time();
-        $salt = 'ttVm5';
-        $_GET['sign'] = encrypt_key(['v1/questionanswer/create_question', $_GET['timestamp'], $_GET['user_token'], $salt], '');
-        $_GET['section_id'] = 2;
-        $_GET['course_id'] = 2;
-        $_GET['content'] = '问题1问题问题';
-
         $user_token = input('param.user_token', '', 'trim');
         $content = input('param.content', '', 'trim');
         $section_id = input('param.section_id', 0, 'intval');
@@ -133,8 +124,7 @@ class QuestionAnswer extends Base
             return $this->fail(12003, '课程id必须');
         }
 
-        $userModel = new MoocUser();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
 
         if(input('param.scrollHeight', 0, 'intval') <= 220)
         {
@@ -186,7 +176,7 @@ class QuestionAnswer extends Base
         }
 
         $questionModel = new Question();
-        $user = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $question = $questionModel->where(['id'=>$question_id,'user_id'=>$user['id']])->find();
         if($question == null){
             return $this->fail(13002, '问题不存在或此用户没有操作权限');
@@ -220,10 +210,9 @@ class QuestionAnswer extends Base
             return $this->fail(20050, '问题id必须');
         }
 
-        $userModel = new MoocUser();
         $questionModel = new Question();
         $likeModel = new Like();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $note = $questionModel->where(['id' => $question_id])->find();
         if ($note === null) {
             return $this->fail(20052, '问题不存在');
@@ -278,9 +267,8 @@ class QuestionAnswer extends Base
         }
 
         //数据整理
-        $userModel = new MoocUser();
         $questionModel = new Question();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $question = $questionModel->where(['id' => $question_id])->find();
         if($question === null){
             return $this->fail(12003,'问题不存在');
@@ -329,9 +317,8 @@ class QuestionAnswer extends Base
             return $tokenRes;
         }
 
-        $userModel = new MoocUser();
         $answerModel = new Answer();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $answer = $answerModel->where(['id' => $answer_id])->find();
         if ($answer === null) {
             return $this->fail(12006, '回答不存在');
@@ -364,14 +351,14 @@ class QuestionAnswer extends Base
         $questionModel = new Question();
         $answerModel = new Answer();
         $question = $questionModel
-                    ->alias('q')
-                    ->join('mooc_user mu','mu.id=q.user_id')
-                    ->join('section s','s.id=q.section_id','left')
-                    ->join('chapter c','c.id=s.chapter_id','left')
-                    ->join('course cs','cs.id=q.course_id','left')
-                    ->where(['q.id'=>$question_id])
-                    ->field('q.*,mu.avatar,mu.id as user_id,mu.nick_name,mu.avatar,mu.type as user_type,s.section_title,c.chapter_title,c.id as chapter_id,cs.course_title,cs.id as course_id,0 as is_like,0 as is_comment')
-                    ->find();
+            ->alias('q')
+            ->join('mooc_user mu','mu.id=q.user_id')
+            ->join('section s','s.id=q.section_id','left')
+            ->join('chapter c','c.id=s.chapter_id','left')
+            ->join('course cs','cs.id=q.course_id','left')
+            ->where(['q.id'=>$question_id])
+            ->field('q.*,mu.avatar,mu.id as user_id,mu.nick_name,mu.avatar,mu.type as user_type,s.section_title,c.chapter_title,c.id as chapter_id,cs.course_title,cs.id as course_id,0 as is_like,0 as is_comment')
+            ->find();
         if($question === null){
             return $this->fail(12010,'问题不存在');
         }
@@ -380,17 +367,18 @@ class QuestionAnswer extends Base
 
         //用户登陆状态下判断是否评论或点赞
         if($user_token) {
-            $user_id = (new MoocUser())->where(['user_token' => $user_token])->value('id');
+            $user = $this->getUserInfo($user_token);
+            $user_id = $user['id'];
             $note['is_like'] = (new Like())->where(['user_id' => $user_id, 'resource_id' =>$question_id, 'type' => 3])->count(1);
             $note['is_comment'] = (new Answer())->where(['user_id' => $user_id, 'question_id' => $question_id, 'delete_time' => 0])->count(1);
         }
 
         $answerList = $answerModel
-                    ->alias('a')
-                    ->join('mooc_user mu','mu.id=a.user_id')
-                    ->where(['a.question_id'=>$question_id])
-                    ->field('a.id,a.user_id,a.content,a.question_id,a.reply_id,mu.id as user_id,mu.nick_name,mu.avatar,mu.type as user_type')
-                    ->select();
+            ->alias('a')
+            ->join('mooc_user mu','mu.id=a.user_id')
+            ->where(['a.question_id'=>$question_id])
+            ->field('a.id,a.user_id,a.content,a.question_id,a.reply_id,mu.id as user_id,mu.nick_name,mu.avatar,mu.type as user_type')
+            ->select();
 
         $answers = [];
         if($answerList){
@@ -448,7 +436,8 @@ class QuestionAnswer extends Base
 
         //用户登陆状态下判断是否评论或点赞
         if($user_token) {
-            $user_id = (new MoocUser())->where(['user_token' => $user_token])->value('id');
+            $user = $this->getUserInfo($user_token);
+            $user_id = $user['id'];
             $note['is_like'] = (new Like())->where(['user_id' => $user_id, 'resource_id' =>$question_id, 'type' => 3])->count(1);
             $note['is_comment'] = (new Answer())->where(['user_id' => $user_id, 'question_id' => $question_id, 'delete_time' => 0])->count(1);
         }

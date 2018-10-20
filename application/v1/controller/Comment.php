@@ -50,7 +50,8 @@ class Comment extends Base
 
         $user_token = input('param.user_token','','trim');
         if($user_token){
-            $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
+            $user = $this->getUserInfo($user_token);
+            $user_id = $user['id'];
             foreach ($commentList as $key => $item) {
                 $commentList[$key]['is_like'] = (new Like())->where(['user_id'=>$user_id,'resource_id'=>$item['id'],'type'=>1])->count(1);
                 $commentList[$key]['content_len'] = mb_strlen($item['content']);
@@ -99,7 +100,8 @@ class Comment extends Base
 
         $user_token = input('param.user_token','','trim');
         if($user_token){
-            $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
+            $user = $this->getUserInfo($user_token);
+            $user_id = $user['id'];
             foreach ($commentList as $key => $item) {
                 $commentList[$key]['is_like'] = (new Like())->where(['user_id'=>$user_id,'resource_id'=>$item['id'],'type'=>1])->count(1);
                 $commentList[$key]['content_len'] = mb_strlen($item['content']);
@@ -184,7 +186,8 @@ class Comment extends Base
 
         // 课程进度不足30%不允许评价
         // ====================================================================
-        $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
+        $user = $this->getUserInfo($user_token);
+        $user_id = $user['id'];
         $course = (new Course())->where(['id'=>$course_id])->find();
         $schedule = (new Schedule())->where(['user_id'=>$user_id,'course_id'=>$course_id])->find();
         $times = [];
@@ -222,8 +225,7 @@ class Comment extends Base
 
 
         //数据整理
-        $userModel = new MoocUser();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $data = [
             'user_id' => $user['id'],
             'center_id' => $user['center_id'],
@@ -266,9 +268,8 @@ class Comment extends Base
         }
 
         //校验笔记是否属于此用户
-        $userModel = new MoocUser();
         $commentModel = new Comments();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $comment = $commentModel->where(['id' => $comment_id])->find();
         if ($comment === null) {
             return $this->fail(20040, '笔记不存在');
@@ -294,12 +295,6 @@ class Comment extends Base
      */
     public function like()
     {
-//        $_GET['user_token'] = 'b0ce7a263c01dfa88c681b3eba8d99a0b0554c0c';
-//        $_GET['timestamp'] = time();
-//        $salt = 'UM9Cg';
-//        $_GET['sign'] = encrypt_key(['v1/comment/like', $_GET['timestamp'], $_GET['user_token'], $salt], '');
-//        $_GET['comment_id'] = 7;
-
         $user_token = input('param.user_token', '', 'trim');
         $comment_id = input('param.id', 0, 'intval');
         $type = input('param.type', 1, 'intval');
@@ -318,7 +313,7 @@ class Comment extends Base
         $userModel = new MoocUser();
         $likeModel = new Like();
         $commentModel = new Comments();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $comment = $commentModel->where(['id' => $comment_id])->find();
         if ($comment === null) {
             return $this->fail(20051, '笔记不存在');
@@ -354,12 +349,6 @@ class Comment extends Base
      */
     public function cancel_like()
     {
-//        $_GET['user_token'] = 'b0ce7a263c01dfa88c681b3eba8d99a0b0554c0c';
-//        $_GET['timestamp'] = time();
-//        $salt = 'UM9Cg';
-//        $_GET['sign'] = encrypt_key(['v1/comment/like', $_GET['timestamp'], $_GET['user_token'], $salt], '');
-//        $_GET['comment_id'] = 7;
-
         $user_token = input('param.user_token', '', 'trim');
         $comment_id = input('param.id', 0, 'intval');
         $type = input('param.type', 1, 'intval');
@@ -375,10 +364,9 @@ class Comment extends Base
         }
 
         //数据校验
-        $userModel = new MoocUser();
         $likeModel = new Like();
         $commentModel = new Comments();
-        $user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $this->getUserInfo($user_token);
         $comment = $commentModel->where(['id' => $comment_id])->find();
         if ($comment === null) {
             return $this->fail(20051, '笔记不存在');
@@ -387,10 +375,10 @@ class Comment extends Base
         //校验是否已点赞
         $is_like = $likeModel->where(['user_id'=>$user['id'],'resource_id'=>$comment_id,'type'=>$type])->find();
         if($is_like){
-           if($likeModel->where(['user_id'=>$user['id'],'resource_id'=>$comment_id,'type'=>$type])->delete() > 0){
-               $commentModel->where(['id'=>$comment_id])->setDec('like_num');
-               return $this->ok('', 20152, '取消点赞成功');
-           }
+            if($likeModel->where(['user_id'=>$user['id'],'resource_id'=>$comment_id,'type'=>$type])->delete() > 0){
+                $commentModel->where(['id'=>$comment_id])->setDec('like_num');
+                return $this->ok('', 20152, '取消点赞成功');
+            }
         }
     }
 
@@ -413,11 +401,11 @@ class Comment extends Base
             }
         }
         if(!empty($course_id)){
-             $cenCourseModel = new CenterCourse();
-             $is_exist = $cenCourseModel->where(['center_id'=>$center_id,'course_id'=>$course_id])->find();
-             if(!$is_exist){
-                 return $this->fail(23008,'课程不存在或者场馆下无此课程');
-             }
+            $cenCourseModel = new CenterCourse();
+            $is_exist = $cenCourseModel->where(['center_id'=>$center_id,'course_id'=>$course_id])->find();
+            if(!$is_exist){
+                return $this->fail(23008,'课程不存在或者场馆下无此课程');
+            }
         }else{
             return $this->fail(23010,'课程id必须');
         }
