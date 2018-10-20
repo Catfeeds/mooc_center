@@ -111,6 +111,7 @@ class Passport extends Core {
 
                 $tokenModel = new Token();
                 $has_login = $tokenModel->where(['user_id'=>$user['id'],'type'=>$terminal])->find();
+
                 if($has_login){
                     //已登录过
                     if (FALSE === $tokenModel->where(['user_id' => $user['id']])->update($data))
@@ -129,15 +130,16 @@ class Passport extends Core {
                     //未登录过
                     if ($tokenModel->allowField(TRUE)->save($data) > 0 )
                     {
-                        return fail(25021, '登陆失败', 1);
-                    }
-                    else
-                    {
                         //登陆端数量添加
                         if($this->terminal($terminal, $center_id) === true){
                             return ok(['token' => $data['user_token'], 'salt' =>  $user['salt'], 'expire_time' => config('mooc_user_expire_time'), 'mooc_user_id' => $user['id']], 25104, '登陆成功', 1);
 
                         }
+
+                    }
+                    else
+                    {
+                        return fail(25021, '登陆失败', 1);
                     }
                 }
 

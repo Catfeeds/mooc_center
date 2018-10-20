@@ -33,20 +33,11 @@ function generate_salt()
 
 function generate_password($password, $salt)
 {
-    file_put_contents('/root/test.log', "password:" . $password, FILE_APPEND);
-    file_put_contents('/root/test.log', 'salt:' . $salt, FILE_APPEND);
-    file_put_contents('/root/test.log', 'PASSWORD_DEFAULT:' . PASSWORD_DEFAULT, FILE_APPEND);
-    file_put_contents('/root/test.log', 'user_pass:' . password_hash($password . $salt, PASSWORD_DEFAULT), FILE_APPEND);
     return password_hash($password . $salt, PASSWORD_DEFAULT);
 }
 
 function compare_password($password, $salt, $password_hash)
 {
-    file_put_contents('/root/test.log', "password:" . $password, FILE_APPEND);
-    file_put_contents('/root/test.log', 'salt:' . $salt, FILE_APPEND);
-    file_put_contents('/root/test.log', 'PASSWORD_DEFAULT:' . PASSWORD_DEFAULT, FILE_APPEND);
-    file_put_contents('/root/test.log', 'user_pass:' . $password_hash, FILE_APPEND);
-    file_put_contents('/root/test.log', 'user_pass:' . password_hash($password . $salt, PASSWORD_DEFAULT));
     return password_verify($password . $salt, $password_hash);
 }
 

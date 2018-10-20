@@ -86,7 +86,7 @@ class Core extends Controller
             return $this->fail(10000, '令牌不能为空', 1);
         }
         $userModel = new MoocUser();
-        $user = $userModel->alias('u')->join('token t','t.user_id=u.id')->where('t.token', $token)->field('u.*,t.access_time')->find();
+        $user = $userModel->alias('u')->join('token t','t.user_id=u.id')->where('t.user_token', $token)->field('u.*,t.access_time')->find();
         if ($user == null) {
             return $this->fail(10001, '令牌无效，用户不存在', 1);
         }
