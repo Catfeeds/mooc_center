@@ -818,25 +818,15 @@ class Chen extends Base {
 	public function getLearnSchedule()
 	{
 		$Db         = new \think\Db;
-		$userRes = verify();
-		if ($userRes['status'] == 0)
-		{
-			return $userRes;
-		}
-		else
-		{
-			$user_id   = $userRes['data']['user_id'];
-			$center_id = $userRes['data']['center_id'];
-			$user_type = $userRes['data']['type'];
-		}
-		//$user       = (new MoocUser())->where(['user_token' => $user_token])->find();
+		$user_token = "6cc6c00edab41244b13e3f71acab82439ae99ada";
+		$user       = (new MoocUser())->where(['user_token' => $user_token])->find();
 
 		$xasix = array(0, 0.2, 0.4, 0.6, 0.8, 1);
 //遍历所有课程服务
 		$fangwenliang_temp_course = array();
-		if ( ! empty($Db::query("select * from course_rela where type=3 and other_id=" . $user_id)))
+		if ( ! empty($Db::query("select * from course_rela where type=3 and other_id=" . $user['id'])))
 		{
-			foreach ($Db::query("select * from course_rela where type=3 and other_id=" . $user_id) as $k_course => $v_course)
+			foreach ($Db::query("select * from course_rela where type=3 and other_id=" . $user['id']) as $k_course => $v_course)
 			{
 				$yasix        = array("0" => 0, "0.2" => 0, "0.4" => 0, "0.6" => 0, "0.8" => 0, "1" => 0);
 				$course_title = $Db::query("select * from course where id=" . $v_course['course_id'])[0]['course_title'];

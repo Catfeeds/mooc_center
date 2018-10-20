@@ -15,6 +15,15 @@ class Upload extends Core
     //上传
     public function upload()
     {
+
+//        header("Access-Control-Allow-Origin:http://demo-mooc.com");
+//        header("Access-Control-Request-Headers:token, uid");
+        header("Access-Control-Allow-Headers:X-Requested-With");
+        header("Access-Control-Allow-Credentials:true");
+        header("Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept, Z-Key");
+        header("Content-Type:application/json");
+        header("Access-Control-Allow-Methods:GET, POST, PUT, DELETE, OPTIONS");
+
         if ($this->request->isPost()) {
             $file = $this->request->file('file');
             $user_token = $this->request->param('user_token');
@@ -50,6 +59,7 @@ class Upload extends Core
                         ]);
                         $result['img_key'] = $fileKey;
                         $result['img_url'] = $weedModel->weedVolume . DIRECTORY_SEPARATOR . $fileKey;
+//                        echo $result['img_url'];die;
                     }else if(in_array($info->getExtension(), ['mp4'])){
                         $total_time = exec("ffmpeg -i ".dirname(dirname(dirname(dirname(__FILE__))))."/public/upload/".$result['file_path']." 2>&1 | grep 'Duration' | cut -d ' ' -f 4 | sed s/,//");
                         $arr_duration = explode(':', $total_time);
@@ -92,6 +102,5 @@ class Upload extends Core
 		$arr_duration = explode(':', $total_time);
 		return ok($arr_duration[0] * 3600 + $arr_duration[1] * 60 + $arr_duration[2], 28101, '获取成功');
 	}
-
 
 }

@@ -325,8 +325,6 @@ class Chapter extends Base
      * 检查course_id合法性
      */
     protected function check_course_id($course_id){
-    	print_r($this->center_id);
-    	die;
         $result=Db::name('center_course')->where(['center_id'=>$this->center_id,'course_id'=>$course_id])->find();
         if($result){
             return true;

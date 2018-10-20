@@ -61,9 +61,7 @@ class SectionNote extends Base
         //用户登录状态下判断用户是否已点赞
         $user_token = input('param.user_token','','trim');
         if($user_token){
-            $user = getUserInfo();
-            $user_id = $user['id'];
-//            $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
+            $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
             if($noteList){
                 $noteList = \collection($noteList)->toArray();
                 foreach ($noteList as $key => $item) {
@@ -126,9 +124,7 @@ class SectionNote extends Base
         //用户登录状态下判断用户是否已点赞
         $user_token = input('param.user_token','','trim');
         if($user_token){
-            $user = getUserInfo();
-            $user_id = $user['id'];
-//            $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
+            $user_id = (new MoocUser())->where(['user_token'=>$user_token])->value('id');
             foreach ($noteList as $key => $item) {
                 $noteList[$key]['content'] = htmlspecialchars_decode( $noteList[$key]['content']);
                 $noteList[$key]['is_like'] = (new Like())->where(['user_id'=>$user_id,'resource_id'=>$item['id'],'type'=>2])->count(1);
@@ -178,9 +174,7 @@ class SectionNote extends Base
 
         //用户登陆状态下判断是否评论或点赞
         if($user_token) {
-            $user = getUserInfo();
-            $user_id = $user['id'];
-            //$user_id = (new MoocUser())->where(['user_token' => $user_token])->value('id');
+            $user_id = (new MoocUser())->where(['user_token' => $user_token])->value('id');
             $note['is_like'] = (new Like())->where(['user_id' => $user_id, 'resource_id' =>$note_id, 'type' => 2])->count(1);
             $note['is_comment'] = (new SectionNoteReply())->where(['user_id' => $user_id, 'note_id' => $note_id, 'delete_time' => 0])->count(1);
             $note['is_collect'] = $noteModel->where(['user_id'=>$user_id,'collect_from'=>$note_id])->count(1);
@@ -222,9 +216,10 @@ class SectionNote extends Base
         } else {
             $user_id = $msg['data']['user_id'];
         }
-		$follow_sets=$Db::query("SELECT * FROM `follow` WHERE `user_id` = {$note_user_id}  AND `follow_id` = {$user_id}");
+//		$follow_sets=$Db::query("SELECT * FROM `follow` WHERE `user_id` = {$note_user_id}  AND `follow_id` = {$user_id}");
         //exit("SELECT * FROM `follow` WHERE `user_id` = {$note_user_id}  AND `follow_id` = {$user_id}");
-        if(empty($follow_sets))
+        $follow_sets = (new \app\v1\model\Follow())->where(['user_id'=>$user_id,'follow_id'=>$note_user_id])->find();
+        if($follow_sets == null)
 		{
 			$is_follow=0;
 		}else{
@@ -298,8 +293,7 @@ class SectionNote extends Base
         //数据整理
         $userModel = new MoocUser();
         $selNoteModel = new SectionNotes();
-        $user = getUserInfo();
-        //$user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $userModel->where(['user_token' => $user_token])->find();
         $user_id = $user['id'];
         $center_id = $user['center_id'];
         $data = [
@@ -347,8 +341,7 @@ class SectionNote extends Base
         //校验笔记是否属于此用户
         $userModel = new MoocUser();
         $noteModel = new SectionNotes();
-        $user = getUserInfo();
-        //$user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $userModel->where(['user_token' => $user_token])->find();
         $note = $noteModel->where(['id' => $note_id])->find();
         if ($note === null) {
             return $this->fail(20040, '笔记不存在');
@@ -394,8 +387,7 @@ class SectionNote extends Base
         $userModel = new MoocUser();
         $noteModel = new SectionNotes();
         $likeModel = new Like();
-        $user = getUserInfo();
-        //$user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $userModel->where(['user_token' => $user_token])->find();
         $note = $noteModel->where(['id' => $note_id])->find();
         if ($note === null) {
             return $this->fail(20052, '笔记不存在');
@@ -452,8 +444,7 @@ class SectionNote extends Base
         $userModel = new MoocUser();
         $noteModel = new SectionNotes();
         $likeModel = new Like();
-        $user = getUserInfo();
-        //$user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $userModel->where(['user_token' => $user_token])->find();
         $note = $noteModel->where(['id' => $note_id])->find();
         if ($note === null) {
             return $this->fail(20052, '笔记不存在');
@@ -500,12 +491,16 @@ class SectionNote extends Base
 			$user_id = $userRes['data']['user_id'];
 
 		}
+		$userModel  = new MoocUser();
+		$user_token = $userModel->where(['id' => $user_id])->value('user_token');
         $note_id = input('param.id', 0, 'intval');
         $type = input('param.type', 2, 'intval');
 
+        $userModel = new MoocUser();
         $noteModel = new SectionNotes();
         $note = $noteModel->where('id', $note_id)->find();
         $collect_from = $note_id;
+        $user_id = $userModel->where(['user_token' => $user_token])->value('id');
         //判断已采集————————————————————————————————
         $data = [
             'user_id' => $user_id,
@@ -556,8 +551,7 @@ class SectionNote extends Base
             return $this->fail(12001, '笔记id不能为空');
         }
 
-        $user = getUserInfo();
-        //$user = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user = (new MoocUser())->where(['user_token' => $user_token])->find();
         $note = (new SectionNotes())->where(['id' => $note_id])->find();
         if ($note == null) {
             return $this->fail(12002, '笔记不存在');
@@ -603,8 +597,7 @@ class SectionNote extends Base
         }
 
         $replyModel = new SectionNoteReply();
-        $user = getUserInfo();
-        //$user = (new MoocUser())->where(['user_token' => $user_token])->find();
+        $user = (new MoocUser())->where(['user_token' => $user_token])->find();
         $reply = $replyModel->where(['id'=>$reply_id,'user_id'=>$user['id']])->find();
         if($reply == null){
             return $this->fail(13002, '笔记不存在或此用户没有操作权限');

@@ -298,6 +298,7 @@ class SpecialSubject extends Core
         if (!empty($course_title)) {
             $where['c.course_title'] = ['like', "%$course_title%"];
         }
+        $where['c.delete_time'] = 0;
         $allMk = (new CenterCourse())->alias('cc')->join('course c', 'c.id=cc.course_id')->where($where)->field('cc.*,c.course_title')->select();
         return $this->ok(['spe_mk' => $spe_mk, 'all_mk' => $allMk], 12311, '获取专题库成功');
     }

@@ -125,10 +125,6 @@ class QuestionAnswer extends Base
             return $this->fail(12001, '标题不能为空');
         }
 
-        if (empty($content)) {
-            return $this->fail(12001, '问题不能为空');
-        }
-
         if (empty($section_id)) {
             return $this->fail(12002, '章节id必须');
         }
@@ -138,10 +134,9 @@ class QuestionAnswer extends Base
         }
 
         $userModel = new MoocUser();
-        $user = $this->getUserInfo();
-        //$user = $userModel->where(['user_token' => $user_token])->find();
+        $user = $userModel->where(['user_token' => $user_token])->find();
 
-        if(input('param.scrollHeight', 0, 'intval') < 220)
+        if(input('param.scrollHeight', 0, 'intval') <= 220)
         {
             $chaola=0;
         }else{
